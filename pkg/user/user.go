@@ -1,14 +1,20 @@
 package user
 
 type User struct {
-	Name    string
-	Age     int
-	Friends []int
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	Age     int    `json:"age"`
+	Friends []int  `json:"friends,omitempty"`
 }
 
 // MakeUser - создает пользователя
 func MakeUser() *User {
 	return &User{}
+}
+
+// GetId - получает имя
+func (u *User) GetId() int {
+	return u.Id
 }
 
 // GetName - получает имя
@@ -19,6 +25,11 @@ func (u *User) GetName() string {
 // GetAge - получает возраст
 func (u *User) GetAge() int {
 	return u.Age
+}
+
+// SetId - устанавливает id
+func (u *User) SetId(id int) {
+	u.Id = id
 }
 
 // SetName - устанавливает имя
@@ -37,8 +48,10 @@ func (u *User) GetFriends() []int {
 }
 
 // SetFriends - задает (всех) друзей
-func (u *User) SetFriends(friends []int) {
+func (u *User) SetFriends(friends []int) []int {
 	u.Friends = friends
+
+	return u.Friends
 }
 
 // AddFriend - добавляет друга
