@@ -143,3 +143,9 @@ Content-Type: application/json
 {
   "new age": "78"
 }
+
+###
+
+//Удаление пользователя
+DELETE http://localhost:8080/flush
+Content-Type: application/json

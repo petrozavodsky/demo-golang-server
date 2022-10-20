@@ -54,7 +54,10 @@ func WebService(port int) {
 	router.Get("/get_users", handler.GetAllUsers(currentStorage))
 
 	// заглушка
-	router.Get("/", handler.Get())
+	router.Get("/", handler.GetRoot())
+
+	// Очистка всех данных
+	router.Delete("/flush", handler.Flush(currentStorage))
 
 	log.Println(http.ListenAndServe("localhost:"+strconv.Itoa(port), router))
 }

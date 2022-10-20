@@ -14,7 +14,7 @@ import (
 
 // Storage - хранилище пользователй
 type Storage struct {
-	db *sql.DB
+	Db *sql.DB
 }
 
 // MakeStorage - создает экземпляр хранилище пользователей
@@ -31,7 +31,7 @@ func (s *Storage) SaveUser(user user.User) int {
 
 	if 1 > uid {
 		q := "INSERT INTO us_users(name, age) VALUES (?, ?);"
-		stmt, err := s.db.Prepare(q)
+		stmt, err := s.Db.Prepare(q)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -49,7 +49,7 @@ func (s *Storage) SaveUser(user user.User) int {
 		return uid
 	}
 
-	chRow := s.db.QueryRow("SELECT id FROM us_users WHERE id=?", user.GetId())
+	chRow := s.Db.QueryRow("SELECT id FROM us_users WHERE id=?", user.GetId())
 	var chId int
 	chRow.Scan(&chId)
 
@@ -58,7 +58,7 @@ func (s *Storage) SaveUser(user user.User) int {
 	}
 
 	q := "UPDATE us_users SET name =?, age=? WHERE id = ?;"
-	stmt, err := s.db.Prepare(q)
+	stmt, err := s.Db.Prepare(q)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func (s *Storage) SaveUser(user user.User) int {
 func (s *Storage) SaveFriends(user *user.User, friends []int) {
 	uid := user.GetId()
 
-	rows, _ := s.db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", uid)
+	rows, _ := s.Db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", uid)
 	var existsFriends []int
 	var addFriends []int
 	var delFriends []int
@@ -140,7 +140,7 @@ func (s *Storage) SaveFriends(user *user.User, friends []int) {
 
 		q := "INSERT INTO us_friends ( user_id, friend_id) VALUES " + addFriendsValuesStr
 
-		_, _ = s.db.Exec(q)
+		_, _ = s.Db.Exec(q)
 	}
 
 	if len(existsFriends) > 0 {
@@ -171,7 +171,7 @@ func (s *Storage) SaveFriends(user *user.User, friends []int) {
 			"( user_id =" + strconv.Itoa(uid) + " AND friend_id IN(" + strings.Join(delFriendsStr, ", ") + ") ) " +
 			"OR ( user_id IN(" + strings.Join(delFriendsStr, ", ") + ") AND friend_id =" + strconv.Itoa(uid) + " )"
 
-		_, err := s.db.Exec(q)
+		_, err := s.Db.Exec(q)
 
 		if err != nil {
 			log.Fatal(err)
@@ -199,7 +199,7 @@ func (s *Storage) AddUser(name string, age int, friends []int) (userId int) {
 // UpdateAge - обновление возраста
 func (s *Storage) UpdateAge(id, age int) int {
 
-	stmt, err := s.db.Prepare("UPDATE us_users SET age=? WHERE id = ?;")
+	stmt, err := s.Db.Prepare("UPDATE us_users SET age=? WHERE id = ?;")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func (s *Storage) UpdateAge(id, age int) int {
 // DeleteUser - удаление пользователя
 func (s *Storage) DeleteUser(id int) int {
 
-	stmt, err := s.db.Prepare("DELETE FROM us_users WHERE id = ?;")
+	stmt, err := s.Db.Prepare("DELETE FROM us_users WHERE id = ?;")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func (s *Storage) DeleteUser(id int) int {
 // GetAllUsers - вывод всех пользователей
 func (s *Storage) GetAllUsers() []*user.User {
 
-	rows, err := s.db.Query("SELECT id FROM us_users")
+	rows, err := s.Db.Query("SELECT id FROM us_users")
 	all := make([]*user.User, 0)
 	log.Println(all)
 
@@ -256,7 +256,7 @@ func (s *Storage) GetUser(id int) *user.User {
 	var age int
 	var friends []int
 
-	out := s.db.QueryRow("SELECT `id`, `name`, `age` FROM us_users WHERE id =?", id)
+	out := s.Db.QueryRow("SELECT `id`, `name`, `age` FROM us_users WHERE id =?", id)
 
 	err := out.Scan(&userId, &name, &age)
 
@@ -264,7 +264,7 @@ func (s *Storage) GetUser(id int) *user.User {
 		return nil
 	}
 
-	rows, err := s.db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", id)
+	rows, err := s.Db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", id)
 
 	if err == nil {
 		for rows.Next() {
@@ -283,13 +283,17 @@ func (s *Storage) GetUser(id int) *user.User {
 }
 
 // GetFriendsID - получение id друзей
-func (s *Storage) GetFriends(id int) []*user.User {
+func (s *Storage) GetFriends(id int) ([]*user.User, error) {
+
+	friendsUsers := make([]*user.User, 0)
 
 	targetUser := s.GetUser(id)
 
-	friends := targetUser.GetFriends()
+	if targetUser == nil {
+		return friendsUsers, errors.New("пользователь не существует")
+	}
 
-	friendsUsers := make([]*user.User, 0)
+	friends := targetUser.GetFriends()
 
 	if len(friends) > 0 {
 
@@ -301,7 +305,7 @@ func (s *Storage) GetFriends(id int) []*user.User {
 
 	}
 
-	return friendsUsers
+	return friendsUsers, nil
 }
 
 // MakeFriends - создает дружеские связи
@@ -309,7 +313,7 @@ func (s *Storage) MakeFriends(id int, fid int) (int, error) {
 
 	count := 0
 
-	row := s.db.QueryRow("SELECT COUNT(id) FROM us_users WHERE id =? OR id=?", id, fid)
+	row := s.Db.QueryRow("SELECT COUNT(id) FROM us_users WHERE id =? OR id=?", id, fid)
 
 	row.Scan(&count)
 
@@ -325,4 +329,13 @@ func (s *Storage) MakeFriends(id int, fid int) (int, error) {
 	s.SaveFriends(targetUser, friends)
 
 	return id, nil
+}
+
+func (s *Storage) Flush() {
+	q := "DELETE FROM us_friends;\n"
+	q += "DELETE FROM us_users;\n"
+	q += "UPDATE `sqlite_sequence` SET `seq` = 0 WHERE `name` = 'us_friends';\n"
+	q += "UPDATE `sqlite_sequence` SET `seq` = 0 WHERE `name` = 'us_users';\n"
+
+	_, _ = s.Db.Exec(q)
 }

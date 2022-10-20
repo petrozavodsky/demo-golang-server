@@ -13,8 +13,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Get - Заглушка
-func Get() http.HandlerFunc {
+// GetRoot - Заглушка
+func GetRoot() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, err := w.Write([]byte("root")); err != nil {
 			log.Fatalln(err)
@@ -55,12 +55,17 @@ func CreateUser(s *storage.Storage) http.HandlerFunc {
 		}
 
 		userID := s.SaveUser(requestUser)
+
 		response := fmt.Sprintf("Пользователь %s с ID %d создан\n", requestUser.GetName(), userID)
 
+		body := MakeBody()
 		w.WriteHeader(http.StatusCreated)
-		if _, err := w.Write([]byte(response)); err != nil {
+		body.SetMessage(response)
+
+		if err := json.NewEncoder(w).Encode(body); err != nil {
 			log.Fatalln(err)
 		}
+		return
 	}
 }
 
@@ -104,12 +109,14 @@ func MakeFriends(s *storage.Storage) http.HandlerFunc {
 		}
 
 		response := fmt.Sprintf("%s и %s теперь друзь\n", s.GetUser(id1).GetName(), s.GetUser(id2).GetName())
-		w.WriteHeader(http.StatusOK)
 
-		if _, err := w.Write([]byte(response)); err != nil {
+		body := MakeBody()
+		w.WriteHeader(http.StatusOK)
+		body.SetMessage(response)
+
+		if err := json.NewEncoder(w).Encode(body); err != nil {
 			log.Fatalln(err)
 		}
-
 		return
 	}
 }
@@ -136,13 +143,16 @@ func DeleteUser(s *storage.Storage) http.HandlerFunc {
 		}
 
 		response := fmt.Sprintf("Пользователь %s удален\n", s.GetUser(id).GetName())
-
 		s.DeleteUser(id)
 
+		body := MakeBody()
 		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(response)); err != nil {
+		body.SetMessage(response)
+
+		if err := json.NewEncoder(w).Encode(body); err != nil {
 			log.Fatalln(err)
 		}
+		return
 	}
 }
 
@@ -161,12 +171,23 @@ func GetAllFriends(s *storage.Storage) http.HandlerFunc {
 			body.SetMessage("Идентификатор не корректен")
 
 			if err := json.NewEncoder(w).Encode(body); err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 			}
 			return
 		}
 
-		friendsID := s.GetFriends(userID)
+		friendsID, err := s.GetFriends(userID)
+
+		if err != nil {
+			body := MakeBody()
+			w.WriteHeader(http.StatusOK)
+			body.SetMessage("Пользователь с таким id не существует")
+
+			if err := json.NewEncoder(w).Encode(body); err != nil {
+				log.Fatalln(err)
+			}
+			return
+		}
 
 		if len(friendsID) < 1 {
 			body := MakeBody()
@@ -200,6 +221,7 @@ func UpdateAge(s *storage.Storage) http.HandlerFunc {
 		val := chi.URLParam(r, "user_id")
 
 		userID, err := strconv.Atoi(val)
+
 		if err != nil {
 			body := MakeBody()
 			w.WriteHeader(http.StatusNotFound)
@@ -228,12 +250,16 @@ func UpdateAge(s *storage.Storage) http.HandlerFunc {
 		}
 
 		s.UpdateAge(userID, age)
-		response := fmt.Sprintf("Пользователь %d обновлен %d\n", userID, age)
-		w.WriteHeader(http.StatusOK)
 
-		if _, err := w.Write([]byte(response)); err != nil {
+		response := fmt.Sprintf("Пользователь %d обновлен %d\n", userID, age)
+		body := MakeBody()
+		w.WriteHeader(http.StatusOK)
+		body.SetMessage(response)
+
+		if err := json.NewEncoder(w).Encode(body); err != nil {
 			log.Fatalln(err)
 		}
+		return
 
 	}
 }
@@ -276,5 +302,21 @@ func GetUser(s *storage.Storage) http.HandlerFunc {
 			log.Fatalln(err)
 		}
 
+	}
+}
+
+// Flush - Очистка
+func Flush(s *storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		s.Flush()
+		body := MakeBody()
+		w.WriteHeader(http.StatusCreated)
+		body.SetMessage("Все данные удалены")
+
+		if err := json.NewEncoder(w).Encode(body); err != nil {
+			log.Fatalln(err)
+		}
+		return
 	}
 }
