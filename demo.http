@@ -1,11 +1,11 @@
 //Просто так.
-GET http://localhost:8080/
+GET http://localhost:9000/
 Accept: application/json
 
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -16,7 +16,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -30,7 +30,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -41,7 +41,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -52,7 +52,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -68,7 +68,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -84,7 +84,7 @@ Content-Type: application/json
 ###
 
 //Создание пользователя
-POST http://localhost:8080/create
+POST http://localhost:9000/create
 Content-Type: application/json
 
 {
@@ -96,7 +96,7 @@ Content-Type: application/json
 
 
 //Создание друзей
-POST http://localhost:8080/make_friends
+POST http://localhost:9000/make_friends
 Content-Type: application/json
 
 {
@@ -108,20 +108,20 @@ Content-Type: application/json
 
 
 //Получение всех друзей
-GET http://localhost:8080/friends/2
+GET http://localhost:9000/friends/2
 Accept: application/json
 
 ###
 
 
 //Получение всех пользоватлей
-GET http://localhost:8080/get_users
+GET http://localhost:9000/get_users
 Accept: application/json
 
 ###
 
 //Удаление пользователя
-DELETE http://localhost:8080/user
+DELETE http://localhost:9000/user
 Content-Type: application/json
 
 {
@@ -131,13 +131,13 @@ Content-Type: application/json
 ###
 
 //Получение всех пользоватлей
-GET http://localhost:8080/get_users
+GET http://localhost:9000/get_users
 Accept: application/json
 
 ###
 
 //Изминение возраста
-PUT http://localhost:8080/user/5
+PUT http://localhost:9000/user/5
 Content-Type: application/json
 
 {
@@ -147,5 +147,5 @@ Content-Type: application/json
 ###
 
 //Удаление пользователя
-DELETE http://localhost:8080/flush
+DELETE http://localhost:9000/flush
 Content-Type: application/json

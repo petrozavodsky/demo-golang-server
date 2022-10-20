@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strconv"
 )
 
@@ -20,54 +20,32 @@ func Proxy(proxyPort int, onePort int, twoPort int) {
 	log.Println("Run proxy - proxyPort: ", proxyPort)
 
 	http.HandleFunc("/", handle)
-	log.Fatalln(http.ListenAndServe("localhost:"+strconv.Itoa(proxyPort), nil))
+	log.Fatalln(http.ListenAndServe(":"+strconv.Itoa(proxyPort), nil))
 }
 
 // handle - sends request to the instances
 func handle(w http.ResponseWriter, r *http.Request) {
-	host := fmt.Sprintf("%s%v", chooseInstanceHost(), r.URL)
-	log.Println(host)
+	host := chooseInstanceHost()
 
-	request, err := http.NewRequest(r.Method, host, r.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
+	log.Println("use host: ", host)
 
-		}
-	}(r.Body)
+	target, err := url.Parse(host)
 
-	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	out, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
+	proxy := httputil.NewSingleHostReverseProxy(target)
 
-		}
-	}(resp.Body)
-
-	if _, err := w.Write(out); err != nil {
-		log.Fatalln(err)
-	}
+	proxy.ServeHTTP(w, r)
 }
 
 func chooseInstanceHost() (instance string) {
 	if counter == 0 {
-		instance = firstInstanceHost
 		counter++
-		return
+		return firstInstanceHost
 	}
 
-	instance = secondInstanceHost
 	counter--
-	return
+	return secondInstanceHost
 }
