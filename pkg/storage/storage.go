@@ -3,7 +3,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -75,43 +74,9 @@ func (s *Storage) SaveUser(user user.User) int {
 
 func (s *Storage) SaveFriends(user *user.User, friends []int) {
 	uid := user.GetId()
-
-	rows, _ := s.Db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", uid)
-	var existsFriends []int
+	existsFriends := s.existsFriends(uid)
 	var addFriends []int
 	var delFriends []int
-
-	inArray := func(what interface{}, where []int) bool {
-		for _, v := range where {
-			if v == what {
-				return true
-			}
-		}
-		return false
-	}
-
-	appendIfMissing := func(slice []int, i int) []int {
-		for _, ele := range slice {
-			if ele == i {
-				fmt.Println(i)
-				return slice
-			}
-		}
-
-		slice = append(slice, i)
-		return slice
-	}
-
-	for rows.Next() {
-		var fid int
-
-		if err := rows.Scan(&fid); err != nil {
-			log.Fatalf("could not scan row: %v", err)
-		}
-
-		existsFriends = appendIfMissing(existsFriends, fid)
-
-	}
 
 	if len(existsFriends) < 1 {
 		addFriends = friends
@@ -125,22 +90,7 @@ func (s *Storage) SaveFriends(user *user.User, friends []int) {
 	}
 
 	if len(addFriends) > 0 {
-		var addFriendsValuesStr string
-
-		for i := range addFriends {
-			s := " (" + strconv.Itoa(uid) + ", " + strconv.Itoa(addFriends[i]) + ") ,"
-			s += " (" + strconv.Itoa(addFriends[i]) + ", " + strconv.Itoa(uid) + " )"
-
-			if i < len(addFriends)-1 {
-				s += ", "
-			}
-
-			addFriendsValuesStr += s
-		}
-
-		q := "INSERT INTO us_friends ( user_id, friend_id) VALUES " + addFriendsValuesStr
-
-		_, _ = s.Db.Exec(q)
+		s.addFriends(uid, addFriends)
 	}
 
 	if len(existsFriends) > 0 {
@@ -161,24 +111,89 @@ func (s *Storage) SaveFriends(user *user.User, friends []int) {
 	}
 
 	if len(delFriends) > 0 {
-		var delFriendsStr []string
+		s.deleteFriends(uid, delFriends)
+	}
+}
 
-		for i := range delFriends {
-			delFriendsStr = append(delFriendsStr, strconv.Itoa(delFriends[i]))
+// appendIfMissing хелпер добавления только уникальных эллементов
+func appendIfMissing(slice []int, i int) []int {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
 		}
-
-		q := "DELETE FROM us_friends WHERE " +
-			"( user_id =" + strconv.Itoa(uid) + " AND friend_id IN(" + strings.Join(delFriendsStr, ", ") + ") ) " +
-			"OR ( user_id IN(" + strings.Join(delFriendsStr, ", ") + ") AND friend_id =" + strconv.Itoa(uid) + " )"
-
-		_, err := s.Db.Exec(q)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
 	}
 
+	slice = append(slice, i)
+	return slice
+}
+
+// inArray хелпер проверки вхождения
+func inArray(what interface{}, where []int) bool {
+	for _, v := range where {
+		if v == what {
+			return true
+		}
+	}
+	return false
+}
+
+// existsFriends хелпер получения друзей
+func (s *Storage) existsFriends(uid int) []int {
+	var existsFriends []int
+	rows, _ := s.Db.Query("SELECT friend_id FROM us_friends WHERE user_id=?", uid)
+
+	for rows.Next() {
+		var fid int
+
+		if err := rows.Scan(&fid); err != nil {
+			log.Fatalf("could not scan row: %v", err)
+		}
+
+		existsFriends = appendIfMissing(existsFriends, fid)
+	}
+	return existsFriends
+}
+
+// deleteFriends хелпер удаления друзей
+func (s *Storage) deleteFriends(uid int, delFriends []int) sql.Result {
+	var delFriendsStr []string
+
+	for i := range delFriends {
+		delFriendsStr = append(delFriendsStr, strconv.Itoa(delFriends[i]))
+	}
+
+	q := "DELETE FROM us_friends WHERE " +
+		"( user_id =" + strconv.Itoa(uid) + " AND friend_id IN(" + strings.Join(delFriendsStr, ", ") + ") ) " +
+		"OR ( user_id IN(" + strings.Join(delFriendsStr, ", ") + ") AND friend_id =" + strconv.Itoa(uid) + " )"
+
+	output, err := s.Db.Exec(q)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return output
+}
+
+// addFriends хелпер жоюавления друзей
+func (s *Storage) addFriends(uid int, addFriends []int) {
+
+	var addFriendsValuesStr string
+
+	for i := range addFriends {
+		s := " (" + strconv.Itoa(uid) + ", " + strconv.Itoa(addFriends[i]) + ") ,"
+		s += " (" + strconv.Itoa(addFriends[i]) + ", " + strconv.Itoa(uid) + " )"
+
+		if i < len(addFriends)-1 {
+			s += ", "
+		}
+
+		addFriendsValuesStr += s
+	}
+
+	q := "INSERT INTO us_friends ( user_id, friend_id) VALUES " + addFriendsValuesStr
+
+	_, _ = s.Db.Exec(q)
 }
 
 // AddUser - добавление пользователя

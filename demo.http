@@ -26,9 +26,6 @@ Content-Type: application/json
 
 ###
 
-
-###
-
 //Создание пользователя
 POST http://localhost:9000/create
 Content-Type: application/json
